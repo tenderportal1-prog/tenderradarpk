@@ -3548,11 +3548,11 @@ function toggleTheme(){const r=document.documentElement;const dk=r.dataset.theme
    ==================================================================== */
 const TRP_SETTINGS = {
   currency: 'PKR',
-  supportEmail: 'tenderportal1@gmail.com',
-  whatsapp: '923379200998',               // your WhatsApp number, no + or spaces
+  supportEmail: 'support@yourdomain.pk',
+  whatsapp: '923001234567',               // your WhatsApp number, no + or spaces
   payment: {                              // shown to customers when they upgrade
-    jazzcash:  { title:'JazzCash',  detail:'0337-9200998 (Account title: Abdul Wahab Afridi)' },
-    easypaisa: { title:'Easypaisa', detail:'0337-9200998 (Account title: Abdul Wahab Afridi)' },
+    jazzcash:  { title:'JazzCash',  detail:'0300-1234567 (Account title: YOUR NAME)' },
+    easypaisa: { title:'Easypaisa', detail:'0345-1234567 (Account title: YOUR NAME)' },
     bank:      { title:'Bank transfer', detail:'Bank: YOUR BANK · IBAN: PK00XXXX0000000000000000 · Title: YOUR NAME' }
   },
   freeTrackedLimit: 3                     // how many tenders Free users may track
@@ -3568,7 +3568,7 @@ const PLANS = {
               feats:['Everything in Pro','Up to 10 team members','Instant WhatsApp Radar alerts','Priority vendor-directory placement','Priority support'],
               locked:[] }
 };
-const DEMO_MODE = false;   // true = anyone can switch plans for testing. Set to false when you go live.
+const DEMO_MODE = true;   // true = anyone can switch plans for testing. Set to false when you go live.
 
 /* ---------- storage helpers ---------- */
 function trpPlans(){ return loadJSON('trp_plans', {}); }
@@ -3821,7 +3821,7 @@ renderDashboard = function(){
    Paste your two values below (Supabase -> Project Settings -> API).
    Leave both empty to stay in browser-only demo mode.
    ==================================================================== */
-const TRP_SUPA = { url: 'https://ptygvsfysrbjphjidnqu.supabase.co/rest/v1/', anonKey: 'sb_publishable_om1HjiKnh_dnBlTTgP8kxA_ue9D4s1b' };
+const TRP_SUPA = { url: '', anonKey: '' };
 const SHOW_DEMO_ACCOUNTS = true;   // set false when you go live (hides demo accounts)
 
 const SB = (TRP_SUPA.url && TRP_SUPA.anonKey && window.supabase) ? window.supabase.createClient(TRP_SUPA.url, TRP_SUPA.anonKey) : null;
