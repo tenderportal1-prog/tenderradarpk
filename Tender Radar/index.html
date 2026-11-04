@@ -3821,7 +3821,7 @@ renderDashboard = function(){
    Paste your two values below (Supabase -> Project Settings -> API).
    Leave both empty to stay in browser-only demo mode.
    ==================================================================== */
-const TRP_SUPA = { url: '', anonKey: '' };
+const TRP_SUPA = { url: 'https://ptygvsfysrbjphjidnqu.supabase.co/rest/v1/', anonKey: 'sb_publishable_om1HjiKnh_dnBlTTgP8kxA_ue9D4s1b' };
 const SHOW_DEMO_ACCOUNTS = true;   // set false when you go live (hides demo accounts)
 
 const SB = (TRP_SUPA.url && TRP_SUPA.anonKey && window.supabase) ? window.supabase.createClient(TRP_SUPA.url, TRP_SUPA.anonKey) : null;
