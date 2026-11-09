@@ -19,8 +19,8 @@ from urllib.parse import urljoin
 # ---- Portals to read. Add more by copying a line. -----------------------------------------
 SOURCES = [
   {"name":"PPRA Punjab", "url":"https://eproc.punjab.gov.pk/ActiveTenders.aspx", "province":"Punjab"},
-  {"name":"PPRA Federal","url":"https://epms.ppra.gov.pk/public/tenders/active-tenders", "province":"Federal"},
-  {"name":"SPPRA Sindh", "url":"https://portalsindh.eprocure.gov.pk/",           "province":"Sindh"},
+  {"name":"PPRA Federal","url":"https://epms.ppra.gov.pk/public/tenders/active-tenders", "province":"Federal", "pages":10},
+  {"name":"SPPRA Sindh", "url":"https://portalsindh.eprocure.gov.pk/",           "province":"Sindh", "insecure":True},
   {"name":"BPPRA Balochistan","url":"http://bpptwo.vdc.services:5451/Tenders",    "province":"Balochistan"},
 ]
 HEADERS = {"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/124 Safari/537.36",
@@ -86,9 +86,38 @@ def map_columns(header_cells):
                 mapping[field] = i; used.add(i); break
     return mapping
 
+def fetch(src, url):
+    """Downloads a page. 'insecure' sources use relaxed SSL (some Pakistani portals have old SSL settings)."""
+    if src.get("insecure"):
+        import ssl, urllib3
+        from requests.adapters import HTTPAdapter
+        urllib3.disable_warnings()
+        class Relaxed(HTTPAdapter):
+            def init_poolmanager(self, *a, **k):
+                ctx = ssl.create_default_context(); ctx.check_hostname = False; ctx.verify_mode = ssl.CERT_NONE
+                try: ctx.set_ciphers("DEFAULT:@SECLEVEL=0")
+                except Exception: pass
+                try: ctx.options |= 0x4   # allow legacy renegotiation
+                except Exception: pass
+                k["ssl_context"] = ctx; return super().init_poolmanager(*a, **k)
+        sess = requests.Session(); sess.mount("https://", Relaxed())
+        return sess.get(url, headers=HEADERS, timeout=(15, 40), verify=False)
+    return requests.get(url, headers=HEADERS, timeout=(15, 40))
+
 def scrape_source(src):
-    r = requests.get(src["url"], headers=HEADERS, timeout=45)
-    print(f"  HTTP {r.status_code}, {len(r.text)//1024} KB")
+    out, seen_first = [], None
+    for page in range(1, int(src.get("pages", 1)) + 1):
+        url = src["url"] if page == 1 else f"{src['url']}{'&' if '?' in src['url'] else '?'}page={page}"
+        rows = scrape_page(src, url)
+        if not rows: break
+        if rows[0]["title"] == seen_first: break          # same page again (portal ignores ?page=): stop
+        seen_first = rows[0]["title"]
+        out += rows
+    return out
+
+def scrape_page(src, url):
+    r = fetch(src, url)
+    print(f"  {url}  ->  HTTP {r.status_code}, {len(r.text)//1024} KB")
     r.raise_for_status()
     soup = BeautifulSoup(r.text, "lxml")
     tb = best_table(soup)
