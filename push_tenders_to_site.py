@@ -20,13 +20,22 @@ PROVINCE_FIX = {"kpk":"Khyber Pakhtunkhwa","khyber pakhtunkhwa":"Khyber Pakhtunk
                 "sindh":"Sindh","punjab":"Punjab","balochistan":"Balochistan","federal":"Federal","islamabad":"Islamabad"}
 
 def to_date(v):
-    """Accepts date, datetime or text like 2026-11-20 / 20/11/2026 / 20-Nov-2026."""
+    """Accepts date, datetime or text like 2026-11-20 / 20/11/2026 / 20-Nov-2026 / Nov 30, 2026 02:15 PM."""
     if isinstance(v, datetime): return v.date().isoformat()
     if isinstance(v, date): return v.isoformat()
-    s = str(v or "").strip()
-    for f in ("%Y-%m-%d","%d/%m/%Y","%d-%m-%Y","%d-%b-%Y","%d %b %Y","%d %B %Y","%d.%m.%Y"):
+    s = re.sub(r"\s+", " ", str(v or "").strip())
+    if not s: return None
+    fmts = ("%Y-%m-%d","%Y-%m-%dT%H:%M:%S","%Y-%m-%d %H:%M:%S","%d/%m/%Y","%d-%m-%Y","%d-%b-%Y","%d %b %Y","%d %B %Y","%d.%m.%Y",
+            "%b %d, %Y","%B %d, %Y","%b %d, %Y %I:%M %p","%B %d, %Y %I:%M %p","%d-%b-%Y %I:%M %p","%d/%m/%Y %I:%M %p","%d-%m-%Y %I:%M %p",
+            "%d/%m/%Y %H:%M","%d-%b-%Y %H:%M","%Y-%m-%d %H:%M")
+    for f in fmts:
         try: return datetime.strptime(s, f).date().isoformat()
         except ValueError: pass
+    # last resort: find a date-looking piece inside the text
+    for rx, f in ((r"[A-Za-z]{3,9} \d{1,2}, \d{4}", None), (r"\d{1,2}[-/ ][A-Za-z]{3,9}[-/ ]\d{4}", None), (r"\d{4}-\d{2}-\d{2}", "%Y-%m-%d"), (r"\d{1,2}[/-]\d{1,2}[/-]\d{4}", None)):
+        m = re.search(rx, s)
+        if m and m.group(0) != s:
+            return to_date(m.group(0))
     return None
 
 def clean(t):
@@ -64,7 +73,7 @@ if not KEY.startswith("sb_"):                 # old-style JWT keys also need the
     hdrs["Authorization"] = f"Bearer {KEY}"
 
 def push(tenders):
-    rows = [r for r in (clean(t) for t in tenders) if r]
+    rows = list({r["id"]: r for r in (clean(t) for t in tenders) if r}.values())   # one row per id (avoids database errors)
     sent = 0
     for i in range(0, len(rows), 200):                # send in batches of 200
         batch = rows[i:i+200]
