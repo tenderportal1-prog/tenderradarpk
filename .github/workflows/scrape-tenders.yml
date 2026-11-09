@@ -1,0 +1,20 @@
+name: Scrape tenders
+on:
+  schedule:
+    - cron: "10 */4 * * *"
+  workflow_dispatch:
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install libraries
+        run: pip install requests beautifulsoup4 lxml
+      - name: Run scraper
+        env:
+          RADAR_SUPABASE_URL: ${{ secrets.RADAR_SUPABASE_URL }}
+          RADAR_SERVICE_KEY: ${{ secrets.RADAR_SERVICE_KEY }}
+        run: python scraper.py
