@@ -17,7 +17,7 @@ from datetime import date
 
 SRC_URL   = os.environ["SOURCE_SUPABASE_URL"].rstrip("/")
 SRC_KEY   = os.environ["SOURCE_KEY"]
-SRC_TABLE = os.environ.get("SOURCE_TABLE", "tenders")
+SRC_TABLE = (os.environ.get("SOURCE_TABLE") or "tenders").strip()
 
 # For each website field, the column names your scraper table might use (first one found is used).
 # If a column in YOUR table has another name, just add it to the right list.
@@ -70,14 +70,31 @@ def pick(row, field):
             return row[c]
     return ""
 
+def list_tables(hdrs):
+    """Asks Supabase which tables exist, so we can tell you the right name."""
+    try:
+        req = urllib.request.Request(f"{SRC_URL}/rest/v1/", headers=hdrs)
+        spec = json.loads(urllib.request.urlopen(req, timeout=60).read())
+        return sorted((spec.get("definitions") or {}).keys())
+    except Exception as e:
+        return [f"(could not list tables: {e})"]
+
 def fetch_all():
     rows, start, page = [], 0, 1000
     hdrs = {"apikey": SRC_KEY}
     if not SRC_KEY.startswith("sb_"): hdrs["Authorization"] = f"Bearer {SRC_KEY}"
     while start < 20000:
-        req = urllib.request.Request(f"{SRC_URL}/rest/v1/{urllib.parse.quote(SRC_TABLE)}?select=*&order=id.desc",
+        req = urllib.request.Request(f"{SRC_URL}/rest/v1/{urllib.parse.quote(SRC_TABLE)}?select=*",
               headers=dict(hdrs, Range=f"{start}-{start+page-1}", **{"Range-Unit":"items"}))
-        chunk = json.loads(urllib.request.urlopen(req, timeout=60).read())
+        try:
+            chunk = json.loads(urllib.request.urlopen(req, timeout=60).read())
+        except urllib.error.HTTPError as e:
+            body = e.read().decode("utf-8", "ignore")[:300]
+            print(f"\n*** Supabase answered HTTP {e.code} when reading table '{SRC_TABLE}' at {SRC_URL}")
+            print("*** Details:", body)
+            print("*** Tables that exist in that project:", ", ".join(list_tables(hdrs)))
+            print("*** FIX: set the secret/variable SOURCE_TABLE to one of those names (or fix SOURCE_SUPABASE_URL).\n")
+            raise SystemExit(1)
         rows += chunk
         if len(chunk) < page: break
         start += page
