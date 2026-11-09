@@ -1,0 +1,22 @@
+# Copies tenders from your scraper's table to the TenderRadarPK website every 3 hours.
+# Put this file in your GitHub repo at:  .github/workflows/sync-to-site.yml
+name: Sync tenders to website
+on:
+  schedule:
+    - cron: "15 */3 * * *"      # every 3 hours
+  workflow_dispatch:             # also lets you press "Run workflow" by hand
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run sync
+        env:
+          SOURCE_SUPABASE_URL: ${{ secrets.SOURCE_SUPABASE_URL }}
+          SOURCE_KEY:          ${{ secrets.SOURCE_KEY }}
+          RADAR_SUPABASE_URL:  ${{ secrets.RADAR_SUPABASE_URL }}
+          RADAR_SERVICE_KEY:   ${{ secrets.RADAR_SERVICE_KEY }}
+        run: python sync_from_scraper.py
